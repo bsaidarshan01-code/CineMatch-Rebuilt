@@ -61,7 +61,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-from src.poster_service import get_tmdb_poster_url, tmdb_is_configured
+from src.poster_service import get_movie_poster_url, posters_configured
 
 # ---------------------------------------------------------------------------
 # Custom CSS – cinematic, responsive dark interface
@@ -233,13 +233,14 @@ def render_page_header(title: str, subtitle: str, icon: str = "🎬") -> None:
 
 
 def get_poster_url(movie_id: int, links_df: pd.DataFrame) -> str | None:
-    """Resolve MovieLens movieId -> TMDB ID -> poster URL."""
+    """Resolve MovieLens movieId -> TMDB / IMDb ID -> poster URL."""
     if links_df is None or links_df.empty:
         return None
-    rows = links_df.loc[links_df["movieId"] == int(movie_id), "tmdbId"]
+    rows = links_df.loc[links_df["movieId"] == int(movie_id), ["tmdbId", "imdbId"]]
     if rows.empty:
         return None
-    return get_tmdb_poster_url(rows.iloc[0])
+    row = rows.iloc[0]
+    return get_movie_poster_url(tmdb_id=row.get("tmdbId"), imdb_id=row.get("imdbId"))
 
 
 def render_poster(movie_id: int, title: str, links_df: pd.DataFrame, width: int = 138) -> None:
@@ -418,8 +419,8 @@ def page_home(movies_df, ratings_df, tags_df, links_df, recommender):
                 unsafe_allow_html=True,
             )
 
-    if not tmdb_is_configured():
-        st.caption("Poster images are optional. Add a TMDB API credential in Streamlit Cloud → Settings → Secrets to enable them.")
+    if not posters_configured():
+        st.caption("Poster images are optional. Add a TMDB or OMDb API key in Streamlit Cloud → Settings → Secrets to enable them.")
 
 
 def page_discover(movies_df, ratings_df, tags_df, links_df, recommender):
@@ -808,8 +809,8 @@ def main() -> None:
         )
         st.markdown("---")
         st.caption("Powered by MovieLens data and classical recommendation algorithms.")
-        if not tmdb_is_configured():
-            st.caption("Poster images: connect a TMDB credential in app Secrets.")
+        if not posters_configured():
+            st.caption("Poster images: connect a TMDB or OMDb key in app Secrets.")
 
     if not all_files_present():
         with st.spinner("Downloading the MovieLens dataset for the first launch…"):
